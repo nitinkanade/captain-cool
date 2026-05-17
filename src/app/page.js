@@ -22,7 +22,7 @@ export default function Home() {
     bowlingTeam: "MI",
     striker: "Ravindra Jadeja",
     nonStriker: "MS Dhoni",
-    bowlers: "Jasprit Bumrah, Hardik Pandya, Yuzvendra Chahal",
+    bowlers: "Jasprit Bumrah:3, Hardik Pandya:2, Yuzvendra Chahal:3",
     pitch: "Two-paced",
     dew: "7",
     venue: "Wankhede",
@@ -57,7 +57,7 @@ export default function Home() {
       bowlingTeam: "MI",
       striker: "Ravindra Jadeja",
       nonStriker: "MS Dhoni",
-      bowlers: "Jasprit Bumrah, Hardik Pandya, Yuzvendra Chahal",
+      bowlers: "Jasprit Bumrah:3, Hardik Pandya:2, Yuzvendra Chahal:3",
       pitch: "Two-paced",
       dew: "7",
       venue: "Wankhede",
@@ -75,10 +75,36 @@ export default function Home() {
     setLang('en');
 
     try {
-      // Split bowlers into array
+      // Parse bowlers "Name:oversUsed, Name:oversUsed" into structured array
+      const bowlersStructured = formData.bowlers.split(',').map(s => {
+        const [name, overs] = s.split(':').map(x => x?.trim());
+        const used = Number(overs);
+        return {
+          name,
+          oversUsed: Number.isFinite(used) ? used : 0,
+          oversRemaining: Math.max(0, 4 - (Number.isFinite(used) ? used : 0)),
+        };
+      }).filter(b => b.name);
+
+      // Derive phase from over number (T20)
+      const overNum = Number(formData.over);
+      const phase = overNum < 6 ? "powerplay" : overNum >= 16 ? "death" : "middle";
+
+      // Compute RRR for 2nd innings
+      const ballsBowled = overNum * 6 + Number(formData.ball);
+      const ballsRemaining = Math.max(0, 120 - ballsBowled);
+      const runsNeeded = Number(formData.target) - Number(formData.score);
+      const requiredRunRate = formData.innings === "2" && ballsRemaining > 0
+        ? ((runsNeeded * 6) / ballsRemaining).toFixed(2)
+        : null;
+
       const matchState = {
         ...formData,
-        bowlers: formData.bowlers.split(',').map(s => s.trim()),
+        bowlers: bowlersStructured,
+        phase,
+        ballsRemaining,
+        runsNeeded: formData.innings === "2" ? runsNeeded : null,
+        requiredRunRate,
       };
 
       const res = await fetch("/api/decide", {
@@ -229,15 +255,27 @@ export default function Home() {
             </div>
 
             <div className="space-y-4 p-4 bg-blue-950/30 rounded-2xl border border-blue-900/50">
-              <div className="space-y-1">
-                <label className="text-xs text-blue-200 font-semibold uppercase">Batter on Strike</label>
-                <select name="striker" value={formData.striker} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition">
-                  {battersList.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-blue-200 font-semibold uppercase">Batter on Strike</label>
+                  <select name="striker" value={formData.striker} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition">
+                    {battersList.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-blue-200 font-semibold uppercase">Non-Striker</label>
+                  <select name="nonStriker" value={formData.nonStriker} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition">
+                    {battersList.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs text-blue-200 font-semibold uppercase">Bowlers Available (comma separated)</label>
-                <input type="text" name="bowlers" value={formData.bowlers} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+                <label className="text-xs text-blue-200 font-semibold uppercase">Bowlers Available <span className="text-white/40 normal-case">(format: <code>Name:oversUsed</code>, comma separated)</span></label>
+                <input type="text" name="bowlers" value={formData.bowlers} onChange={handleInputChange} placeholder="Bumrah:3, Hardik:2, Chahal:3" className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Venue</label>
+                <input type="text" name="venue" value={formData.venue} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
               </div>
             </div>
 
@@ -312,7 +350,10 @@ export default function Home() {
                         </div>
                         {msg.toolCallsMade.map((tc, i) => (
                           <div key={i} className="text-white/60">
-                            Executed <span className="text-green-400">{tc.name}</span> for {tc.args.batterName} vs {tc.args.bowlerNames?.join(', ')}
+                            <span className="text-green-400">{tc.name}</span>(<span className="text-white/40">{Object.entries(tc.args).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join('/') : v}`).join(', ')}</span>)
+                            {tc.result?.winProbability !== undefined && (
+                              <span className="ml-2 text-orange-300">→ win prob {Math.round(tc.result.winProbability * 100)}%</span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -321,6 +362,45 @@ export default function Home() {
                     <div className="whitespace-pre-wrap leading-relaxed">
                       {msg.isFinal && lang === 'hi' ? msg.messageHindi : msg.message}
                     </div>
+
+                    {msg.isFinal && (msg.confidence !== null && msg.confidence !== undefined) && (
+                      <div className="mt-3 p-3 bg-gradient-to-r from-emerald-950/60 to-emerald-900/40 rounded-lg border border-emerald-500/30 font-sans text-xs">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-emerald-300 font-bold uppercase tracking-wider">Confidence</span>
+                          <span className="text-emerald-200 font-mono text-base font-black">{Math.round(msg.confidence * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-black/40 rounded-full h-2 overflow-hidden mb-3">
+                          <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300" style={{ width: `${Math.round(msg.confidence * 100)}%` }}></div>
+                        </div>
+                        {msg.counterfactual && (
+                          <div className="text-white/70">
+                            <span className="text-amber-300 font-bold">Counterfactual: </span>
+                            <span className="italic">{msg.counterfactual.alternative}</span>
+                            {msg.counterfactual.delta && <span className="text-white/50"> — {msg.counterfactual.delta}</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {msg.searchQueries && msg.searchQueries.length > 0 && (
+                      <div className="mt-3 p-3 bg-black/40 rounded-lg border border-white/10 font-sans text-xs">
+                        <div className="flex items-center gap-1 text-orange-300 font-bold mb-1">
+                          <Info className="w-3 h-3" /> Grounded via Google Search
+                        </div>
+                        <div className="text-white/60 italic mb-1">
+                          Queries: {msg.searchQueries.join(' · ')}
+                        </div>
+                        {msg.groundingSources && msg.groundingSources.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {msg.groundingSources.slice(0, 4).map((src, i) => (
+                              <a key={i} href={src.uri} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200 underline truncate max-w-[200px]">
+                                {src.title || src.uri}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
