@@ -87,7 +87,14 @@ export default function Home() {
         body: JSON.stringify(matchState),
       });
 
-      if (!res.ok) throw new Error("Failed to fetch debate");
+      if (!res.ok) {
+        let errStr = "Failed to fetch debate";
+        try {
+          const errData = await res.json();
+          if (errData.error) errStr = errData.error;
+        } catch(e) {}
+        throw new Error(errStr);
+      }
 
       const data = await res.json();
       
@@ -104,11 +111,16 @@ export default function Home() {
       revealDebate(data.debate);
 
     } catch (error) {
+      let friendlyMessage = error.message;
+      if (friendlyMessage.includes("429") || friendlyMessage.includes("Quota exceeded")) {
+        friendlyMessage = "Google Gemini API Rate Limit Exceeded (Free Tier limits 15-20 requests/minute). Please wait 60 seconds and try again!";
+      }
+
       setDebate([{ 
         agent: "system", 
-        name: "System", 
+        name: "System Error", 
         emoji: "⚠️", 
-        message: "The AI brain trust is taking a tea break. Check console or API key." 
+        message: friendlyMessage 
       }]);
     } finally {
       setLoading(false);

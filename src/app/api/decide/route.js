@@ -64,6 +64,7 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error("Error in decide route:", error);
-    return Response.json({ error: "Failed to generate debate" }, { status: 500 });
+    const errorMessage = error.message || String(error);
+    return Response.json({ error: errorMessage }, { status: 500 });
   }
 }
