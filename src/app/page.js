@@ -1,64 +1,329 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Brain, Trophy, Volume2, Info, Loader2, Play } from "lucide-react";
+import { playerStats } from "@/lib/playerStats";
 
 export default function Home() {
+  const [debate, setDebate] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [finalDecision, setFinalDecision] = useState("");
+  const endOfMessagesRef = useRef(null);
+
+  const [formData, setFormData] = useState({
+    innings: "2",
+    over: "16",
+    ball: "0",
+    score: "148",
+    wickets: "4",
+    battingTeam: "CSK",
+    bowlingTeam: "MI",
+    striker: "Ravindra Jadeja",
+    nonStriker: "MS Dhoni",
+    bowlers: "Jasprit Bumrah, Hardik Pandya, Yuzvendra Chahal",
+    pitch: "Two-paced",
+    dew: "7",
+    venue: "Wankhede",
+    target: "192",
+    impactPlayer: true,
+  });
+
+  const scrollToBottom = () => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [debate]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const loadDemo = () => {
+    setFormData({
+      innings: "2",
+      over: "16",
+      ball: "0",
+      score: "148",
+      wickets: "4",
+      battingTeam: "CSK",
+      bowlingTeam: "MI",
+      striker: "Ravindra Jadeja",
+      nonStriker: "MS Dhoni",
+      bowlers: "Jasprit Bumrah, Hardik Pandya, Yuzvendra Chahal",
+      pitch: "Two-paced",
+      dew: "7",
+      venue: "Wankhede",
+      target: "192",
+      impactPlayer: true,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setDebate([]);
+    setFinalDecision("");
+
+    try {
+      // Split bowlers into array
+      const matchState = {
+        ...formData,
+        bowlers: formData.bowlers.split(',').map(s => s.trim()),
+      };
+
+      const res = await fetch("/api/decide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(matchState),
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch debate");
+
+      const data = await res.json();
+      
+      // Animate debate bubbles appearing
+      const revealDebate = async (debateData) => {
+        for (let i = 0; i < debateData.length; i++) {
+          await new Promise(r => setTimeout(r, 1000));
+          setDebate(prev => [...prev, debateData[i]]);
+        }
+        setFinalDecision(data.finalDecision);
+      };
+      
+      revealDebate(data.debate);
+
+    } catch (error) {
+      setDebate([{ 
+        agent: "system", 
+        name: "System", 
+        emoji: "⚠️", 
+        message: "The AI brain trust is taking a tea break. Check console or API key." 
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const playVoice = () => {
+    if (!finalDecision) return;
+    const utterance = new SpeechSynthesisUtterance(finalDecision);
+    utterance.voice = speechSynthesis.getVoices().find(v => v.lang.includes("en-IN")) || null;
+    utterance.rate = 1.1;
+    speechSynthesis.speak(utterance);
+  };
+
+  const battersList = Object.keys(playerStats.batters);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white font-sans selection:bg-orange-500 selection:text-white">
+      <header className="px-6 py-4 bg-black/30 backdrop-blur-md border-b border-white/10 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <Trophy className="text-orange-400 w-8 h-8" />
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">Captain Cool <span className="text-orange-400">🏏</span></h1>
+            <p className="text-xs text-blue-200 uppercase tracking-widest font-semibold">Your AI Cricket Brain Trust</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <button 
+          onClick={loadDemo}
+          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition px-4 py-2 rounded-full text-sm font-semibold border border-white/10"
+        >
+          <Play className="w-4 h-4 text-orange-400" />
+          Load Demo Scenario
+        </button>
+      </header>
+
+      <main className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-80px)]">
+        
+        {/* LEFT PANEL - Form */}
+        <div className="lg:col-span-5 bg-black/40 backdrop-blur-xl rounded-3xl border border-white/10 p-6 overflow-y-auto custom-scrollbar">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Innings</label>
+                <select name="innings" value={formData.innings} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition">
+                  <option value="1">1st Innings</option>
+                  <option value="2">2nd Innings</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-blue-200 font-semibold uppercase">Over</label>
+                  <input type="number" name="over" value={formData.over} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-blue-200 font-semibold uppercase">Ball</label>
+                  <input type="number" name="ball" value={formData.ball} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Score</label>
+                <input type="text" name="score" value={formData.score} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition font-mono text-lg" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Wickets</label>
+                <input type="text" name="wickets" value={formData.wickets} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition font-mono text-lg" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Target</label>
+                <input type="text" name="target" value={formData.target} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition font-mono text-lg" disabled={formData.innings === "1"} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Batting Team</label>
+                <input type="text" name="battingTeam" value={formData.battingTeam} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Bowling Team</label>
+                <input type="text" name="bowlingTeam" value={formData.bowlingTeam} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+              </div>
+            </div>
+
+            <div className="space-y-4 p-4 bg-blue-950/30 rounded-2xl border border-blue-900/50">
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Batter on Strike</label>
+                <select name="striker" value={formData.striker} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition">
+                  {battersList.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Bowlers Available (comma separated)</label>
+                <input type="text" name="bowlers" value={formData.bowlers} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase">Pitch Condition</label>
+                <select name="pitch" value={formData.pitch} onChange={handleInputChange} className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:border-orange-500 transition">
+                  <option>Flat</option>
+                  <option>Turning</option>
+                  <option>Two-paced</option>
+                  <option>Green</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-blue-200 font-semibold uppercase flex justify-between">
+                  <span>Dew Factor</span> 
+                  <span className="text-orange-400">{formData.dew}/10</span>
+                </label>
+                <input type="range" min="0" max="10" name="dew" value={formData.dew} onChange={handleInputChange} className="w-full h-2 bg-black/50 rounded-lg appearance-none cursor-pointer mt-3 accent-orange-500" />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-black/30 rounded-2xl border border-white/5">
+              <span className="text-sm font-semibold">Impact Player Available?</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="impactPlayer" checked={formData.impactPlayer} onChange={handleInputChange} className="sr-only peer" />
+                <div className="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+              </label>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-black font-black text-lg py-4 rounded-2xl transition transform hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(249,115,22,0.3)] flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : <Brain className="w-6 h-6" />}
+              {loading ? "Analyzing..." : "Ask the Captain 🧠"}
+            </button>
+          </form>
         </div>
+
+        {/* RIGHT PANEL - Debate Arena */}
+        <div className="lg:col-span-7 bg-black/20 backdrop-blur-md rounded-3xl border border-white/10 flex flex-col overflow-hidden relative">
+          
+          {debate.length === 0 && !loading ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-50">
+              <Trophy className="w-24 h-24 mb-4 text-white/20" />
+              <h2 className="text-2xl font-bold mb-2">The War Room is Empty</h2>
+              <p className="max-w-md">Set the match state and click "Ask the Captain" to let the AI brain trust analyze the situation and debate the next move.</p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              {debate.map((msg, idx) => (
+                <div key={idx} className={`flex flex-col max-w-[85%] animate-in slide-in-from-bottom-4 fade-in duration-500 ${msg.agent === 'ravi' ? 'self-end items-end' : 'self-start'}`}>
+                  
+                  <div className={`flex items-center gap-2 mb-1 px-1 ${msg.agent === 'ravi' ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-2xl bg-white/10 p-2 rounded-full border border-white/5 shadow-sm">{msg.emoji}</span>
+                    <span className="font-bold text-sm tracking-wide text-white/80">{msg.name}</span>
+                    {msg.isFinal && <span className="bg-orange-500 text-black text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ml-2">Final Call</span>}
+                  </div>
+
+                  <div className={`p-5 rounded-2xl shadow-lg border relative ${
+                    msg.agent === 'numbers' ? 'bg-slate-900/90 border-blue-500/30 text-blue-50 font-mono text-sm' :
+                    msg.agent === 'captain' ? (msg.isFinal ? 'bg-gradient-to-br from-indigo-900 to-blue-900 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.15)] text-white text-lg' : 'bg-blue-950/80 border-blue-400/20 text-white') :
+                    'bg-red-950/80 border-red-500/30 text-rose-50 italic text-lg' // Ravi
+                  } ${msg.agent === 'ravi' ? 'rounded-tr-sm' : 'rounded-tl-sm'}`}>
+                    
+                    {msg.toolCallsMade && msg.toolCallsMade.length > 0 && (
+                      <div className="mb-3 p-3 bg-black/40 rounded-lg border border-white/10 font-sans text-xs flex flex-col gap-1">
+                        <div className="flex items-center gap-1 text-blue-300 font-bold mb-1">
+                          <Info className="w-3 h-3" /> Tools Used
+                        </div>
+                        {msg.toolCallsMade.map((tc, i) => (
+                          <div key={i} className="text-white/60">
+                            Executed <span className="text-green-400">{tc.name}</span> for {tc.args.batterName} vs {tc.args.bowlerNames?.join(', ')}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="whitespace-pre-wrap leading-relaxed">{msg.message}</div>
+                  </div>
+                </div>
+              ))}
+              
+              {loading && debate.length < 4 && (
+                <div className="flex flex-col max-w-[85%] self-start animate-pulse">
+                  <div className="flex items-center gap-2 mb-1 px-1">
+                    <span className="text-2xl bg-white/10 p-2 rounded-full border border-white/5 shadow-sm">🤔</span>
+                    <span className="font-bold text-sm tracking-wide text-white/50">Thinking...</span>
+                  </div>
+                  <div className="p-5 rounded-2xl rounded-tl-sm shadow-lg bg-white/5 border border-white/10 flex gap-2">
+                    <div className="w-2 h-2 rounded-full bg-white/40 animate-bounce"></div>
+                    <div className="w-2 h-2 rounded-full bg-white/40 animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 rounded-full bg-white/40 animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                </div>
+              )}
+              <div ref={endOfMessagesRef} />
+            </div>
+          )}
+
+          {finalDecision && (
+             <div className="p-4 bg-black/60 border-t border-white/10 flex items-center justify-between backdrop-blur-xl animate-in slide-in-from-bottom flex-shrink-0">
+               <div className="flex items-center gap-4">
+                 <button onClick={playVoice} className="bg-orange-500 hover:bg-orange-400 text-black p-3 rounded-full transition transform hover:scale-110 active:scale-95">
+                   <Volume2 className="w-5 h-5" />
+                 </button>
+                 <div>
+                   <p className="text-xs text-orange-400 font-bold uppercase tracking-widest">Listen to Final Call</p>
+                   <p className="text-sm text-white/70">"Captain Cool" voice output</p>
+                 </div>
+               </div>
+               <div className="text-right">
+                 <div className="text-xs text-white/50 mb-1">Captain's Confidence</div>
+                 <div className="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
+                   <div className="h-full bg-gradient-to-r from-orange-500 to-amber-300 w-[85%]"></div>
+                 </div>
+               </div>
+             </div>
+          )}
+        </div>
+
       </main>
     </div>
   );

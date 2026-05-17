@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Captain Cool 🏏 - AI Cricket Brain Trust
 
-## Getting Started
+Captain Cool is a multi-agent AI system powered by Google Gemini that acts as a virtual IPL cricket captain. It debates match states using three distinct AI agents and provides tactical decisions.
 
-First, run the development server:
+## Agents
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Numbers (Stats Analyst):** A data-driven agent that fetches real player stats via Gemini Function Calling.
+2. **Captain Cool (Strategist):** Modeled on MS Dhoni, makes the call based on stats and match state.
+3. **Ravi Shastri (Devil's Advocate):** Finds the flaw in Captain Cool's reasoning, challenging the decision.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup Instructions
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+1. Clone the repository and run \`npm install\`.
+2. Get a Google Gemini API Key.
+3. Create a \`.env.local\` file in the root directory and add:
+   \`\`\`
+   GEMINI_API_KEY=your_key_here
+   \`\`\`
+4. Run \`npm run dev\` and open \`http://localhost:3000\`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Demo Scenario
 
-## Learn More
+Click the **Load Demo Scenario** button in the app to pre-fill the form with a high-stakes match situation.
 
-To learn more about Next.js, take a look at the following resources:
+**Scenario:**
+- 2nd innings, Over 16, Ball 0
+- CSK chasing 192 vs MI
+- Score: 148/4
+- Need 44 off 24
+- Batter on strike: Ravindra Jadeja
+- Bowlers remaining: Bumrah (1), Hardik (2), Chahal (2)
+- Pitch: two-paced, Dew: 7/10
+- Venue: Wankhede
+- Impact Player: Available (Mustafizur)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Click **Ask the Captain 🧠** and watch the agents debate!
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Screenshot
+![Screenshot of Captain Cool AI](public/screenshot.png)
