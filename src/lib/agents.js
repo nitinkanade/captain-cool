@@ -120,3 +120,9 @@ You are NOT trying to be wrong. You are trying to stress-test the decision. Some
   const response = await callAgent({ systemPrompt, userMessage });
   return response.text;
 }
+
+export async function translateToHindi(englishText) {
+  const systemPrompt = `You are a translator expert in Cricket. Translate the given English text into natural, colloquial Hindi written in Devanagari script. Ensure cricket terminology (like over, wicket, pitch, death overs, spin, pace) is translated naturally or kept in English-Hindi mix (Hinglish) if that sounds more natural for an Indian cricket fan.`;
+  const response = await callAgent({ systemPrompt, userMessage: englishText });
+  return response.text;
+}

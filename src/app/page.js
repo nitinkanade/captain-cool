@@ -8,6 +8,8 @@ export default function Home() {
   const [debate, setDebate] = useState([]);
   const [loading, setLoading] = useState(false);
   const [finalDecision, setFinalDecision] = useState("");
+  const [finalDecisionHindi, setFinalDecisionHindi] = useState("");
+  const [lang, setLang] = useState('en');
   const endOfMessagesRef = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -69,6 +71,8 @@ export default function Home() {
     setLoading(true);
     setDebate([]);
     setFinalDecision("");
+    setFinalDecisionHindi("");
+    setLang('en');
 
     try {
       // Split bowlers into array
@@ -94,6 +98,7 @@ export default function Home() {
           setDebate(prev => [...prev, debateData[i]]);
         }
         setFinalDecision(data.finalDecision);
+        setFinalDecisionHindi(data.finalDecisionHindi);
       };
       
       revealDebate(data.debate);
@@ -111,10 +116,30 @@ export default function Home() {
   };
 
   const playVoice = () => {
-    if (!finalDecision) return;
-    const utterance = new SpeechSynthesisUtterance(finalDecision);
-    utterance.voice = speechSynthesis.getVoices().find(v => v.lang.includes("en-IN")) || null;
-    utterance.rate = 1.1;
+    if (lang === 'en' && !finalDecision) return;
+    if (lang === 'hi' && !finalDecisionHindi) return;
+    const textToSpeak = lang === 'hi' ? finalDecisionHindi : finalDecision;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    
+    const voices = speechSynthesis.getVoices();
+    const targetLang = lang === 'hi' ? "hi-IN" : "en-IN";
+    const langVoices = voices.filter(v => v.lang.includes(targetLang));
+    
+    const femaleNames = ['female', 'zira', 'swara', 'aditi', 'kalpana', 'neerja', 'hazel'];
+    const maleNames = ['male', 'david', 'ravi', 'hemant', 'mark', 'george', 'ryan', 'brian'];
+    
+    let selectedVoice = langVoices.find(v => maleNames.some(m => v.name.toLowerCase().includes(m))) 
+                     || langVoices.find(v => !femaleNames.some(f => v.name.toLowerCase().includes(f))) 
+                     || langVoices[0] 
+                     || null;
+
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => v.lang.includes("en") && maleNames.some(m => v.name.toLowerCase().includes(m))) || voices[0] || null;
+    }
+
+    utterance.voice = selectedVoice;
+    utterance.rate = 1.0; 
+    utterance.pitch = 0.9; 
     speechSynthesis.speak(utterance);
   };
 
@@ -281,7 +306,9 @@ export default function Home() {
                       </div>
                     )}
                     
-                    <div className="whitespace-pre-wrap leading-relaxed">{msg.message}</div>
+                    <div className="whitespace-pre-wrap leading-relaxed">
+                      {msg.isFinal && lang === 'hi' ? msg.messageHindi : msg.message}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -314,6 +341,12 @@ export default function Home() {
                    <p className="text-sm text-white/70">"Captain Cool" voice output</p>
                  </div>
                </div>
+               
+               <div className="flex items-center gap-2 bg-white/10 rounded-lg p-1">
+                 <button type="button" onClick={() => setLang('en')} className={`px-3 py-1 rounded text-sm font-bold ${lang === 'en' ? 'bg-orange-500 text-black' : 'text-white/60 hover:text-white'}`}>EN</button>
+                 <button type="button" onClick={() => setLang('hi')} className={`px-3 py-1 rounded text-sm font-bold ${lang === 'hi' ? 'bg-orange-500 text-black' : 'text-white/60 hover:text-white'}`}>HI</button>
+               </div>
+
                <div className="text-right">
                  <div className="text-xs text-white/50 mb-1">Captain's Confidence</div>
                  <div className="w-32 h-2 bg-white/10 rounded-full overflow-hidden">

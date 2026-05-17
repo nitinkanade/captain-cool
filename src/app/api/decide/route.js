@@ -1,4 +1,4 @@
-import { askNumbersAgent, askCaptainCoolAgent, askRaviAgent } from "@/lib/agents";
+import { askNumbersAgent, askCaptainCoolAgent, askRaviAgent, translateToHindi } from "@/lib/agents";
 
 export async function POST(request) {
   try {
@@ -37,10 +37,15 @@ export async function POST(request) {
 
     // 4. Captain Cool makes final decision
     const finalDecision = await askCaptainCoolAgent(matchState, numbersResponse.message, raviChallenge);
+    
+    // 5. Translate final decision to Hindi
+    const finalDecisionHindi = await translateToHindi(finalDecision);
+    
     debate.push({
       agent: "captain",
       emoji: "🧢",
       message: finalDecision,
+      messageHindi: finalDecisionHindi,
       isFinal: true,
       name: "Captain Cool"
     });
@@ -48,10 +53,14 @@ export async function POST(request) {
     // Extract the one-line final call for the voice output if possible (it's in quotes usually)
     const finalCallMatch = finalDecision.match(/"([^"]+)"$/);
     const finalCallText = finalCallMatch ? finalCallMatch[1] : finalDecision.split('\n').pop();
+    
+    const finalCallHindiMatch = finalDecisionHindi.match(/"([^"]+)"$/);
+    const finalCallTextHindi = finalCallHindiMatch ? finalCallHindiMatch[1] : finalDecisionHindi.split('\n').pop();
 
     return Response.json({
       debate,
-      finalDecision: finalCallText
+      finalDecision: finalCallText,
+      finalDecisionHindi: finalCallTextHindi
     });
   } catch (error) {
     console.error("Error in decide route:", error);
